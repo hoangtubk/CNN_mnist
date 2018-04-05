@@ -14,21 +14,22 @@ def get_data_mnist():
     tensor_shap = [-1, 28, 28, 1]
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=False)
     X_train = mnist.train.images
-    X_train = tf.reshape(X_train, tensor_shap)
+    # X_train = tf.reshape(X_train, tensor_shap)
     y_train = mnist.train.labels
 
     X_valid = mnist.validation.images
-    X_valid = tf.reshape(X_valid, tensor_shap)
+    # X_valid = tf.reshape(X_valid, tensor_shap)
     y_valid = mnist.validation.labels
 
     X_test = mnist.test.images
-    X_test = tf.reshape(X_test, tensor_shap)
+    # X_test = tf.reshape(X_test, tensor_shap)
     y_test = mnist.train.labels
 
     return X_train, y_train, X_valid, y_valid, X_test, y_test
 
 def build_model(features, labels, mode):
-    conv1 = tf.layers.conv2d(inputs=features,
+    input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
+    conv1 = tf.layers.conv2d(inputs=input_layer,
                              filters=32,
                              kernel_size=[5, 5],
                              padding='same',
@@ -56,19 +57,18 @@ def build_model(features, labels, mode):
                              activation=tf.nn.relu)
     # output = tf.nn.softmax(logits=dense2)
     logits = dense2
-    if mode == tf.estimator.ModeKeys.TRAIN:
-        loss = tf.losses.sparse_softmax_cross_entropy(labels=labels,
-                                                      logits=logits)
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-        train_op = optimizer.minimize(loss=loss,
-                                      global_step=tf.train.get_global_step())
+    # if mode == tf.estimator.ModeKeys.TRAIN:
+    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels,
+                                                  logits=logits)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+    train_op = optimizer.minimize(loss=loss,
+                                  global_step=tf.train.get_global_step())
 
-        return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
-
-    return None
+    return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
 def main(unused_argv):
     X_train, y_train, X_valid, y_valid, X_test, y_test = get_data_mnist()
+    print(X_train.shape)
     mnist_classifier = tf.estimator.Estimator(model_fn=build_model,
                                               model_dir="/tmp/mnist_convnet_model")
     # Set up logging for predictions
@@ -88,5 +88,12 @@ def main(unused_argv):
     mnist_classifier.train(input_fn=train_input_fn,
                            steps=20,
                            hooks=[logging_hook])
+    # Evaluate the model and print results
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": X_test},
+                                                       y=y_test,
+                                                       num_epochs=1,
+                                                       shuffle=False)
+    eval_results = mnist_classifier.evaluate(input_fn=eval_input_fn)
+    print(eval_results)
 if __name__ == "__main__":
     tf.app.run(main)

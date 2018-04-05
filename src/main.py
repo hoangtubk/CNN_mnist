@@ -6,9 +6,9 @@
  * Have a nice day　:*)　:*)
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
@@ -18,6 +18,8 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 
 def cnn_model_fn(features, labels, mode):
+    print(features)
+    assert False
     """Model function for CNN."""
     # Input Layer
     # Reshape X to 4-D tensor: [batch_size, width, height, channels]
@@ -116,6 +118,7 @@ def main(unused_argv):
     print((train_labels.shape))
     eval_data = mnist.test.images  # Returns np.array
     eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
+    print(eval_data.shape)
 
     # Create the Estimator
     mnist_classifier = tf.estimator.Estimator(
@@ -126,7 +129,8 @@ def main(unused_argv):
     # Log the values in the "Softmax" tensor with label "probabilities"
     tensors_to_log = {"probabilities": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(
-    tensors=tensors_to_log, every_n_iter=50)
+        tensors=tensors_to_log,
+        every_n_iter=50)
 
     # Train the model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -135,11 +139,9 @@ def main(unused_argv):
         batch_size=100,
         num_epochs=None,
         shuffle=True)
-    print(train_input_fn)
-    assert False
     mnist_classifier.train(
         input_fn=train_input_fn,
-        steps=20000,
+        steps=20,
         hooks=[logging_hook])
 
     # Evaluate the model and print results
