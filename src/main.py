@@ -112,6 +112,8 @@ def main(unused_argv):
     mnist = tf.contrib.learn.datasets.load_dataset("mnist")
     train_data = mnist.train.images  # Returns np.array
     train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
+    print((train_data.shape))
+    print((train_labels.shape))
     eval_data = mnist.test.images  # Returns np.array
     eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
 
@@ -119,7 +121,6 @@ def main(unused_argv):
     mnist_classifier = tf.estimator.Estimator(
         model_fn=cnn_model_fn,
         model_dir="/tmp/mnist_convnet_model")
-
 
     # Set up logging for predictions
     # Log the values in the "Softmax" tensor with label "probabilities"
@@ -134,6 +135,8 @@ def main(unused_argv):
         batch_size=100,
         num_epochs=None,
         shuffle=True)
+    print(train_input_fn)
+    assert False
     mnist_classifier.train(
         input_fn=train_input_fn,
         steps=20000,
@@ -148,6 +151,5 @@ def main(unused_argv):
     eval_results = mnist_classifier.evaluate(input_fn=eval_input_fn)
     print(eval_results)
 
-
 if __name__ == "__main__":
-    tf.app.run()
+    tf.app.run(main)
