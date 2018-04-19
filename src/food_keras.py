@@ -7,20 +7,23 @@
 """
 
 import keras
+from keras.applications.vgg16 import VGG16
 import cv2 as cv
 import numpy as np
 import os
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt
 
+from IPython.display import SVG
+from keras.utils.vis_utils import model_to_dot
 
-BATCH_SIZE = 128
-EPOCHS = 100
-NUMBER_CLASS = 43
-IM_SHAPE = (32, 32)
+BATCH_SIZE = 4
+EPOCHS = 10
+NUMBER_CLASS = 3
+IM_SHAPE = (224, 224)
 IM_CHANEL = 3
 
 def create_data(path_data, path_np_data, path_np_label, num_class):
@@ -96,10 +99,10 @@ def load_data(path_np_data, path_np_label, num_class, percent):
 
     return x_train_sf, y_train_sf, x_test_sf, y_test_sf
 
-def build_model(input, num_classes):
+def build_model():
     model = Sequential()
     model.add(Conv2D(32, (3, 3), padding='same',
-                     input_shape=input.shape[1:]))
+                     input_shape=(IM_SHAPE[0], IM_SHAPE[1], IM_CHANEL)))
     model.add(Activation('relu'))
     model.add(Conv2D(32, (3, 3)))
     model.add(Activation('relu'))
@@ -117,7 +120,7 @@ def build_model(input, num_classes):
     model.add(Dense(512))
     model.add(Activation('relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(num_classes))
+    model.add(Dense(NUMBER_CLASS))
     model.add(Activation('softmax'))
 
     # initiate RMSprop optimizer
@@ -129,18 +132,38 @@ def build_model(input, num_classes):
 
     return model
 
+def build_VGG():
+    base_model = VGG16(weights='imagenet',
+                  include_top=False,
+                  input_shape=(IM_SHAPE[0], IM_SHAPE[1], IM_CHANEL))
+    add_model = Sequential()
+    add_model.add(Flatten(input_shape=base_model.output_shape[1:]))
+    add_model.add(Dropout(0.5))
+    add_model.add(Dense(256, activation='relu'))
+    add_model.add(Dropout(0.5))
+    add_model.add(Dense(NUMBER_CLASS))
+    add_model.add(Activation('softmax'))
+
+    model = Model(inputs=base_model.input, outputs=add_model(base_model.output))
+    model.compile(loss='binary_crossentropy',
+                  optimizer=keras.optimizers.SGD(lr=1e-4, momentum=0.9),
+                  metrics=['accuracy'])
+
+    return model
 if __name__ == '__main__':
     # path_data_train_test = '../data_train_test_food'
-    path_data_train_test = '../data_train_test_traffic'
+    # path_data_train_test = '../data_train_test_traffic'
+    path_data_train_test = '../data_train_test_AIVerify'
     # path_raw_data = '/media/tuhoangbk/DATA/BigData/food-101/10class'
-    path_raw_data = '/media/tuhoangbk/DATA/BigData/GTSRB/Final_Training/Images'
+    # path_raw_data = '/media/tuhoangbk/DATA/BigData/GTSRB/Final_Training/Images'
+    path_raw_data = '/media/tuhoangbk/DATA/AI Verify/AnhTestIT'
     # create_data(path_data = path_raw_data,
     #             path_np_data = '../data',
     #             path_np_label= '../label',
     #             num_class=NUMBER_CLASS)
     # x_train_sf, y_train_sf, x_test_sf, y_test_sf = load_data(path_np_data='../data',
     #                                                          path_np_label='../label',
-    #                                                          num_class=10,
+    #                                                          num_class=NUMBER_CLASS,
     #                                                          percent=0.8)
     # np.save(os.path.join(path_data_train_test, 'x_train.npy'), x_train_sf)
     # np.save(os.path.join(path_data_train_test, 'y_train.npy'), y_train_sf)
@@ -161,9 +184,7 @@ if __name__ == '__main__':
     print(y_train_sf.shape)
     print(x_test_sf.shape)
     print(y_test_sf.shape)
-    model = build_model(input=x_train_sf,
-                        num_classes=NUMBER_CLASS)
-
+    model = build_VGG()
     # checkpoint
     filepath = "weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
